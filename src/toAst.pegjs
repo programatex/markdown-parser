@@ -10,7 +10,7 @@
   const toElement = (type, content) => ({ type, content });
 
   const splitWithRanges = (type, text, matches) => {
-    if (!matches.length) return text;
+    if (!matches.length) return [text];
 
     const result = [];
 
@@ -25,27 +25,23 @@
     if (matches.at(-1).right !== text.length)
       result.push(text.slice(matches.at(-1).right));
 
+    console.log(result);
     return result;
+  };
+
+  const parseInlinePartial = (type, text, regexp) => {
+    if (typeof text !== "string") return text;
+
+    const matchRanges = createMatchRanges(text, regexp);
+    return splitWithRanges(type, text, matchRanges);
   };
 
   const parseInline = (text) => {
     const codeMatchRanges = createMatchRanges(text, /(`+)(?<content>.+?)\1/g);
 
     const parsed = splitWithRanges("code", text, codeMatchRanges)
-      .map((item) => {
-        if (typeof item !=="string") return item;
-
-        const boldMatchRanges = createMatchRanges(item, /[\*_]{2}(?<content>.+?)[\*_]{2}/g);
-        return splitWithRanges("bold", item, boldMatchRanges);
-      })
-      .flat()
-      .map((item) => {
-        if (typeof item !== "string") return item;
-        
-        const italicMatchRanges = createMatchRanges(item, /[\*_](?<content>.+?)[\*_]/g);
-        return splitWithRanges("italic", item, italicMatchRanges);
-      })
-      .flat()
+      .map((item) => parseInlinePartial("bold", item, /[\*_]{2}(?<content>.+?)[\*_]{2}/g)).flat()
+      .map((item) => parseInlinePartial("italic", item, /[\*_](?<content>.+?)[\*_]/g)).flat()
       
     return parsed;
   };
@@ -62,7 +58,7 @@
  const parseList = (text) => {
     const lines = text
       .split("\n")
-      .slice(1, -1)
+      .slice(0, -1)
       .map(line => {
         const ulMatch = line.match(/^(\s*)[\-+*]\s+(.*)$/);
         if (!!ulMatch) {
@@ -93,7 +89,10 @@
         
         return acc;
       }, [])
-      .map(parseInline);
+      .map(item => ({
+        ...item,
+        content: parseInline(item.content)
+      }));
 
     let list = [{ ...lines[0], level: 0 }];
     let indentList = [list[0].indent, Infinity];
@@ -208,7 +207,7 @@ Heading =
   	return {
       type: "heading",
       level: prefix.level,
-      conten
+      content
     };
   }
 
@@ -225,7 +224,7 @@ Table =
   body:(Table_Row (eol / nothing))+ {
     return {
       type: "table",
-      header: header.map(parseInline(cell)),
+      header: header.map(cell => parseInline(cell)),
       aligner,
       body: body.map(v => v[0].map(parseInline))
     };
@@ -265,7 +264,7 @@ List = items:$(
   ) {
     return {
       type: "list",
-      content: parseLine(items)
+      content: parseList(items)
     };
   }
 
