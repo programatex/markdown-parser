@@ -43,7 +43,7 @@ esbuild.build({
   platform: "node",
   
   bundle: true,
-  minify: true,
+  // minify: true,
   plugins: [
     pegjsPlugin
   ]
