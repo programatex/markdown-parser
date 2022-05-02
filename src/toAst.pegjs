@@ -1,4 +1,41 @@
 {
+  // regex: RegExp;
+  // elementCreator: (preload: { [string]: string; }) => { type: string; [string]: any; };
+  // text: string;
+
+  const generatePartialInlineParser = ({ regex, elementCreator }) => (text) => {
+    if (typeof text !== "string") return text;
+
+    const matchRanges = [...text.matchAll(regex)]
+      .map(match => ({
+        left: match.index,
+        right: match.index + match[0].length,
+        preload: match.groups
+      }));
+
+    if (!matchRanges.length) return [text];
+
+    // splitting with `matchRanges`
+    const result = [];
+
+    if (matchRanges[0].left !== 0) {
+      result.push(text.slice(0, matchRanges[0].left));
+    }
+    result.push(elementCreator(matchRanges[0].preload));
+
+    for (let i = 0, l = matchRanges.length - 1; i < l; i++) {
+      result.push(text.slice(matchRanges[i].right, matchRanges[i + 1].left));
+      result.push(elementCreator(matchRanges[i + 1].preload));
+    }
+
+    if (matchRanges.at(-1).right !== text.length) {
+      result.push(text.slice(matchRanges.at(-1).right));
+    }
+
+    console.log(matchRanges, result);
+    return result;
+  }
+
   const createMatchRanges = (text, regexp) => {
     return [...text.matchAll(regexp)].map((match) => ({
       left: match.index,
@@ -35,13 +72,35 @@
     return splitWithRanges(type, text, matchRanges);
   };
 
+  const codeParser = generatePartialInlineParser({
+    regex: /(`+)(?<content>.+?)\1/g,
+    elementCreator: ({ content }) => ({ type: "code", content })
+  });
+
+  const boldParser = generatePartialInlineParser({
+    regex: /[\*_]{2}(?<content>.+?)[\*_]{2}/g,
+    elementCreator: ({ content }) => ({ type: "bold", content })
+  });
+
+  const italicParser = generatePartialInlineParser({
+    regex: /[\*_](?<content>.+?)[\*_]/g,
+    elementCreator: ({ content }) => ({ type: "italic", content })
+  });
+
+
+
   const parseInline = (text) => {
     const codeMatchRanges = createMatchRanges(text, /(`+)(?<content>.+?)\1/g);
 
-    const parsed = splitWithRanges("code", text, codeMatchRanges)
-      .map((item) => parseInlinePartial("bold", item, /[\*_]{2}(?<content>.+?)[\*_]{2}/g)).flat()
-      .map((item) => parseInlinePartial("italic", item, /[\*_](?<content>.+?)[\*_]/g)).flat()
+    // const parsed = splitWithRanges("code", text, codeMatchRanges)
+    //   .map((item) => parseInlinePartial("bold", item, /[\*_]{2}(?<content>.+?)[\*_]{2}/g)).flat()
+    //   .map((item) => parseInlinePartial("italic", item, /[\*_](?<content>.+?)[\*_]/g)).flat()
       
+    const parsed = [text]
+      .map(codeParser).flat()
+      .map(boldParser).flat()
+      .map(italicParser).flat();
+
     return parsed;
   };
 
