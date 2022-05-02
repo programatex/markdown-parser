@@ -1,47 +1,61 @@
 {
-  const createMatchRanges = (text, regexp) => {
-    return [...text.matchAll(regexp)].map((match) => ({
-      left: match.index,
-      right: match.index + match[0].length,
-      content: match.groups.content
-    }));
-  };
+  // regex: RegExp;
+  // elementCreator: (preload: { [string]: string; }) => { type: string; [string]: any; };
+  // text: string;
 
-  const toElement = (type, content) => ({ type, content });
-
-  const splitWithRanges = (type, text, matches) => {
-    if (!matches.length) return [text];
-
-    const result = [];
-
-    if (matches[0].left !== 0) result.push(text.slice(0, matches[0].left));
-    result.push(toElement(type, matches[0].content));
-
-    for (let i = 0, l = matches.length - 1; i < l; i++) {
-      result.push(text.slice(matches[i].right, matches[i + 1].left));
-      result.push(toElement(type, matches[i + 1].content));
-    }
-
-    if (matches.at(-1).right !== text.length)
-      result.push(text.slice(matches.at(-1).right));
-
-    return result;
-  };
-
-  const parseInlinePartial = (type, text, regexp) => {
+  const generatePartialInlineParser = ({ regex, elementCreator }) => (text) => {
     if (typeof text !== "string") return text;
 
-    const matchRanges = createMatchRanges(text, regexp);
-    return splitWithRanges(type, text, matchRanges);
-  };
+    const matchRanges = [...text.matchAll(regex)]
+      .map(match => ({
+        left: match.index,
+        right: match.index + match[0].length,
+        preload: match.groups
+      }));
+
+    if (!matchRanges.length) return [text];
+
+    // splitting with `matchRanges`
+    const result = [];
+
+    if (matchRanges[0].left !== 0) {
+      result.push(text.slice(0, matchRanges[0].left));
+    }
+    result.push(elementCreator(matchRanges[0].preload));
+
+    for (let i = 0, l = matchRanges.length - 1; i < l; i++) {
+      result.push(text.slice(matchRanges[i].right, matchRanges[i + 1].left));
+      result.push(elementCreator(matchRanges[i + 1].preload));
+    }
+
+    if (matchRanges.at(-1).right !== text.length) {
+      result.push(text.slice(matchRanges.at(-1).right));
+    }
+
+    return result;
+  }
+
+  const codeParser = generatePartialInlineParser({
+    regex: /(`+)(?<content>.+?)\1/g,
+    elementCreator: ({ content }) => ({ type: "code", content })
+  });
+
+  const boldParser = generatePartialInlineParser({
+    regex: /[\*_]{2}(?<content>.+?)[\*_]{2}/g,
+    elementCreator: ({ content }) => ({ type: "bold", content })
+  });
+
+  const italicParser = generatePartialInlineParser({
+    regex: /[\*_](?<content>.+?)[\*_]/g,
+    elementCreator: ({ content }) => ({ type: "italic", content })
+  });
 
   const parseInline = (text) => {
-    const codeMatchRanges = createMatchRanges(text, /(`+)(?<content>.+?)\1/g);
+    const parsed = [text]
+      .map(codeParser).flat()
+      .map(boldParser).flat()
+      .map(italicParser).flat();
 
-    const parsed = splitWithRanges("code", text, codeMatchRanges)
-      .map((item) => parseInlinePartial("bold", item, /[\*_]{2}(?<content>.+?)[\*_]{2}/g)).flat()
-      .map((item) => parseInlinePartial("italic", item, /[\*_](?<content>.+?)[\*_]/g)).flat()
-      
     return parsed;
   };
 
@@ -90,7 +104,8 @@
       }, [])
       .map(item => ({
         ...item,
-        content: parseInline(item.content)
+        content: parseInline(item.content),
+        children: []
       }));
 
     let list = [{ ...lines[0], level: 0 }];
@@ -126,20 +141,20 @@
     }
 
     const nestedLists = lists.map(list => {
-      const newlist = [list[0]];
-      for (let i = 1, l = list.length; i < l; i++) {
-        if (list[i].level === 0) {
-          newlist.push(list[i]);
-        } else {
-          let cur = newlist;
-          for (let d = 0; d < list[i].level - 1; d++) cur = cur.at(-1);
-          if (list[i - 1].level < list[i].level) cur.push([]);
-          cur.at(-1).push(list[i]);
-        }
-      }
+      const newlist = {
+        type: list[0].type,
+        children: []
+      };
+
+      list.forEach(item => {
+        let cur = newlist;
+        for (let d = 0; d < item.level; d++) cur = cur.children.at(-1);
+        cur.children.push(item);
+      })
+
       return newlist;
     });
-    
+
     return nestedLists;
   };
 
