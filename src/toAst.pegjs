@@ -25,7 +25,6 @@
     if (matches.at(-1).right !== text.length)
       result.push(text.slice(matches.at(-1).right));
 
-    console.log(result);
     return result;
   };
 
