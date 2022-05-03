@@ -1,9 +1,5 @@
-const mainParser = require("./toAst.pegjs");
-
-const toAst = (text) => {
-  return mainParser.parse(text);
-};
+const { md2ast } = require("./md2ast/index.js");
 
 module.exports = {
-  toAst
+  md2ast
 };
