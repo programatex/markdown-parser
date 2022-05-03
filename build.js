@@ -1,23 +1,23 @@
 /**
  * @type {import("esbuild").Plugin}
  */
-const pegjsPlugin = {
-  name: "pegjs",
+const peggyPlugin = {
+  name: "peggy",
 
   setup(build) {
     const path = require("path");
     const fs = require("fs");
-    const pegjs = require("pegjs");
+    const peggy = require("peggy");
 
-    build.onResolve({ filter: /\.pegjs$/ }, (args) => ({
+    build.onResolve({ filter: /\.peggy$/ }, (args) => ({
       path: path.resolve(path.dirname(args.importer), args.path),
-      namespace: "pegjs"
+      namespace: "peggy"
     }));
 
-    build.onLoad({ filter: /\.pegjs$/, namespace: "pegjs" }, async ({ path }) => {
+    build.onLoad({ filter: /\.peggy$/, namespace: "peggy" }, async ({ path }) => {
       try {
         const source = await fs.promises.readFile(path, "utf-8");
-        const compiled = pegjs.generate(source, {
+        const compiled = peggy.generate(source, {
           output: "source",
           format: "commonjs"
         });
@@ -44,6 +44,6 @@ esbuild.build({
   bundle: true,
   minify: true,
   plugins: [
-    pegjsPlugin
+    peggyPlugin
   ]
 }).catch(() => process.exit(1));

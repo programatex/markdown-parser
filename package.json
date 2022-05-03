@@ -10,7 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "esbuild": "^0.14.38",
-    "pegjs": "^0.10.0"
+    "peggy": "^1.2.0"
   },
   "devDependencies": {
     "@types/node": "^17.0.30",

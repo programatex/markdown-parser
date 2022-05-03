@@ -1,4 +1,4 @@
-const mainParser = require("./md2ast.pegjs");
+const mainParser = require("./md2ast.peggy");
 
 const md2ast = (text) => {
   return mainParser.parse(text);
