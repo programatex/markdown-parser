@@ -41,9 +41,8 @@ esbuild.build({
   entryPoints: ["src/index.js"],
   outdir: "dist",
   platform: "node",
-  
   bundle: true,
-  // minify: true,
+  minify: true,
   plugins: [
     pegjsPlugin
   ]
