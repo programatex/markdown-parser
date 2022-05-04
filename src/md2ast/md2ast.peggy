@@ -104,8 +104,7 @@
       }, [])
       .map(item => ({
         ...item,
-        content: parseInline(item.content),
-        children: []
+        content: parseInline(item.content)
       }));
 
     let list = [{ ...lines[0], level: 0 }];
@@ -143,14 +142,35 @@
     const nestedLists = lists.map(list => {
       const newlist = {
         type: list[0].type,
-        children: []
+        items: []
       };
 
-      list.forEach(item => {
+      let prev = newlist;
+      for (let i = 1, l = list.length; i < l; i++) {
+        const levelDelta = list[i].level - list[i - 1].level;
+
+        if (levelDelta === 0) {
+          prev.items.push(list[i].content);
+          continue;
+        }
+        
+        if (levelDelta === 1) {
+          const newitem = {
+            type: list[i].type,
+            items: [list[i].content]
+          };
+          prev.items.push(newitem);
+          prev = newitem;
+          continue;
+        }
+        
         let cur = newlist;
-        for (let d = 0; d < item.level; d++) cur = cur.children.at(-1);
-        cur.children.push(item);
-      })
+        for (let j = 0, m = list[i].level - 1; j < m; j++) {
+          cur = cur.items.at(-1);
+        }
+        cur.items.push(list[i].content);
+        prev = cur;
+      }
 
       return newlist;
     });
