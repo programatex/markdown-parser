@@ -164,6 +164,13 @@ start =
   Document
 
 Document =
+  body:Body {
+    return {
+      body
+    };
+  }
+
+Body =
   elements:BlockElement* eol* {
   	return elements;
   }
