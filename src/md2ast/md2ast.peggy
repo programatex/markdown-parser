@@ -28,8 +28,8 @@
       result.push(elementCreator(matchRanges[i + 1].preload));
     }
 
-    if (matchRanges.at(-1).right !== text.length) {
-      result.push(text.slice(matchRanges.at(-1).right));
+    if (matchRanges[matchRanges.length - 1].right !== text.length) {
+      result.push(text.slice(matchRanges[matchRanges.length - 1].right));
     }
 
     return result;
@@ -97,7 +97,7 @@
         };
       })
       .reduce((acc, cur, i) => {
-        if (cur.type === "none") acc.at(-1).content += `\n${cur.content}`;
+        if (cur.type === "none") acc[acc.length - 1].content += `\n${cur.content}`;
         else acc.push(cur);
         
         return acc;
@@ -114,7 +114,7 @@
     for (let i = 1, l = lines.length; i < l; i++) {
       const level = Math.min(
         indentList.findIndex(indent => lines[i].indent <= indent),
-        list.at(-1).level + 1
+        list[list.length - 1].level + 1
       );
       
       let flag = false;
@@ -166,7 +166,7 @@
         
         let cur = newlist;
         for (let j = 0, m = list[i].level - 1; j < m; j++) {
-          cur = cur.items.at(-1);
+          cur = cur.item[cur.item.length - 1];
         }
         cur.items.push(list[i].content);
         prev = cur;
